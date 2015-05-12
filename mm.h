@@ -3,6 +3,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
+
+#define FALSE 0
+#define TRUE 1
 
 /* $begin mallocinterface */
 int mm_init(void); 
@@ -22,10 +26,20 @@ typedef struct {
 
 extern team_t team;
 
+/* privat global for setting placement algorightm */
+static int isFirstFit;
+
 /* Our internal helper functions */
 int evaluate(char *cmdline);
 int getCommandType(char *cmd);
 int parseline(char *buf, char **argv);
+void* firstFit(size_t asize);
+void* bestFit(size_t asize);
+
+/* inline function declartions */
+void setBestFit() { isFirstFit = FALSE; };
+void setFirstFit() { isFirstFit = TRUE; };
+
 
 /* enum for evaluating a command given at the prompt */
 enum commands { ALLOCATE = 0
@@ -33,5 +47,7 @@ enum commands { ALLOCATE = 0
                 , BLOCKLIST = 2
                 , WRITEHEAP = 3
                 , PRINTHEAP = 4
-                , QUIT = 5 };
+                , BESTFIT = 5
+                , FIRSTFIT = 6
+                , QUIT = 7 };
 #endif

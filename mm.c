@@ -14,7 +14,7 @@
 /*
  * If NEXT_FIT defined use next fit search, else use first fit search 
  */
-#define NEXT_FIT
+//#define NEXT_FIT
 
 /* $begin mallocmacros */
 /* Basic constants and macros */
@@ -124,11 +124,16 @@ int evaluate(char *cmdline) {
                             break;
         case PRINTHEAP:     // call your function here
                             break;
-        case QUIT:          return 0; // end the program
+        case BESTFIT:       setBestFit();
+                            puts("using bestfit from now on");
                             break;
+        case FIRSTFIT:      setFirstFit();
+                            puts("using firstfit from now on");
+                            break;
+        case QUIT:          // need to free all heap mem and system mem
+                            return 0; 
         default:            // This means invalid command
                             puts("invalid command entered");
-                            break; 
     }
     return 1;
 }
@@ -146,6 +151,10 @@ int getCommandType(char *cmd) {
         return WRITEHEAP;
     } else if (!strcmp(cmd, "printheap")) {
         return PRINTHEAP;
+    } else if (!strcmp(cmd, "bestfit")) {
+        return BESTFIT;
+    } else if (!strcmp(cmd, "firstfit")) {
+        return FIRSTFIT;
     } else if (!strcmp(cmd, "quit")) {
         return QUIT;
     } else {
@@ -208,6 +217,10 @@ int parseline(char *buf, char **argv)
 int mm_init(void) 
 {
     mem_init();
+
+    /* initialize the placement algo */
+    setFirstFit();
+
     /* Create the initial empty heap */
     if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1) //line:vm:mm:begininit
         return -1;
@@ -461,18 +474,47 @@ static void *find_fit(size_t asize)
     return NULL;  /* no fit found */
 #else 
 /* $begin mmfirstfit */
+    /* we must determine which placement algorithm we will use */
+    void *(*placementFunc)(size_t);
+    
+    placementFunc = isFirstFit ? &firstFit : &bestFit;
+    return (*placementFunc)(asize);
+#endif
+}
+
+
+void* firstFit(size_t asize) {
     /* First fit search */
     void *bp;
-
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
             return bp;
         }
     }
     return NULL; /* No fit */
-/* $end mmfirstfit */
-#endif
 }
+
+void* bestFit(size_t asize) {
+    /* Best fit search */
+    int minFreeSpace = MAX_HEAP;
+    int currentFreeSpace;
+    void *bp, *bestFitBP;
+
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+        currentFreeSpace = GET_SIZE(HDRP(bp)); 
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= currentFreeSpace) && (currentFreeSpace < minFreeSpace)) {
+            minFreeSpace = currentFreeSpace;
+            bestFitBP = bp;
+        }
+    }
+    
+    /* if the minFreeSpace var stayed at MAX_HEAP then we clearly didn't find a free space */
+    if (minFreeSpace != MAX_HEAP) 
+        return bestFitBP;    
+
+    return NULL; /* No fit */
+}
+
 
 static void printblock(void *bp) 
 {
