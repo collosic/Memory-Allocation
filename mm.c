@@ -505,6 +505,10 @@ void* bestFit(size_t asize) {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= currentFreeSpace) && (currentFreeSpace < minFreeSpace)) {
             minFreeSpace = currentFreeSpace;
             bestFitBP = bp;
+
+            /* we can make a slight optimization to this algorithm by determining
+             * if the adjusted size is equal to the currentFreeSpace */
+            if (asize == currentFreeSpace) break;
         }
     }
     
