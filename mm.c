@@ -58,7 +58,8 @@ static void *coalesce(void *bp);
 static void printblock(void *bp); 
 static void checkheap(int verbose);
 static void checkblock(void *bp);
-
+int allocate (size_t size);
+void free_block(int block_num);
 /* defined Constants */
 #define MAXLINE 128
 #define MAXARGS 10
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
 
     while (program_is_running) {
         printf("> ");
+        fflush(stdout);
         fgets(cmdline, MAXLINE, stdin);
 
         if (feof(stdin)) {
@@ -98,17 +100,23 @@ int evaluate(char *cmdline) {
      */
     strcpy(buf, cmdline);
     int argc = parseline(buf, argv);
-
+    unsigned int amount;
+    int block_num;
     // now determine what command we will use
     int type = getCommandType(argv[0]);
+    
     // how call the function that is needed
     switch (type) {
         /* Here is an example on how you can use this switch statement
          * printheap(argc, argv);
          */
         case ALLOCATE:      // call your function here
+                            if(sscanf(argv[1], "%u", &amount) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+                            printf("%i\n", allocate(amount));
                             break;
         case FREE:          // call your function here
+                            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+                            free_block(block_num);
                             break;
         case BLOCKLIST:     // call your function here
                             break;
@@ -126,7 +134,9 @@ int evaluate(char *cmdline) {
 }
 
 int getCommandType(char *cmd) {
-    if (!strcmp(cmd, "allocate")) {
+    if (cmd == NULL) {
+        return -1;
+    } else if (!strcmp(cmd, "allocate")) {
         return ALLOCATE;
     } else if (!strcmp(cmd, "free")) {
        return FREE;
@@ -142,6 +152,31 @@ int getCommandType(char *cmd) {
         return -1;
     }
 }
+
+//A: allocate fx "wrapper"
+int allocate (size_t size) {
+    printf("Hello we are in allocate!\n");
+    char * p = mm_malloc(size);
+    if(p != NULL){
+        printf("%p\n", p);
+        //right now i am just returning 1 but it should return COUNTER value
+        return 1; // return insert_node(COUNTER, p); -> that fx must return COUNTER val (and that fx if insert is successful increments COUNTER
+    } else {
+        printf("We have null pointer on our hands, run for cover\n");
+        return 0;
+    }
+
+}
+//A: free "wrapper"
+void free_block(int block_num){
+    printf("Hello from free fx\n");
+    //here we get that pointer from our LL via void *get_addy(int block_num) fx or something
+    //mm_free(get_addy(int block_num));
+    //here we call the remove_node(int block_num) -> it must remove the node with that block number
+    //we don't do anything with the COUNTER here (only when we insert node)
+}
+
+
 
 int parseline(char *buf, char **argv)
 {
@@ -175,13 +210,14 @@ int mm_init(void)
     mem_init();
     /* Create the initial empty heap */
     if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1) //line:vm:mm:begininit
-	    return -1;
+        return -1;
 
     PUT(heap_listp, 0);                          /* Alignment padding */
     PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1)); /* Prologue header */ 
     PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1)); /* Prologue footer */ 
     PUT(heap_listp + (3*WSIZE), PACK(0, 1));     /* Epilogue header */
     heap_listp += (2*WSIZE);                     //line:vm:mm:endinit  
+    printf("in init (start): %p\n", heap_listp);
 /* $end mminit */
 
 #ifdef NEXT_FIT
@@ -191,7 +227,8 @@ int mm_init(void)
 
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) 
-	return -1;
+        return -1;
+
     return 0;
 }
 /* $end mminit */
@@ -208,29 +245,29 @@ void *mm_malloc(size_t size)
 
 /* $end mmmalloc */
     if (heap_listp == 0){
-	    mm_init();
+        mm_init();
     }
 /* $begin mmmalloc */
     /* Ignore spurious requests */
     if (size == 0)
-	    return NULL;
+        return NULL;
 
     /* Adjust block size to include overhead and alignment reqs. */
     if (size <= DSIZE)                                          //line:vm:mm:sizeadjust1
-	    asize = 2*DSIZE;                                        //line:vm:mm:sizeadjust2
+        asize = 2*DSIZE;                                        //line:vm:mm:sizeadjust2
     else
-	    asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE); //line:vm:mm:sizeadjust3
+        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE); //line:vm:mm:sizeadjust3
 
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL) {  //line:vm:mm:findfitcall
-    	place(bp, asize);                  //line:vm:mm:findfitplace
-    	return bp;
+        place(bp, asize);                  //line:vm:mm:findfitplace
+        return bp;
     }
 
     /* No fit found. Get more memory and place the block */
     extendsize = MAX(asize,CHUNKSIZE);                 //line:vm:mm:growheap1
     if ((bp = extend_heap(extendsize/WSIZE)) == NULL)  
-	    return NULL;                                  //line:vm:mm:growheap2
+        return NULL;                                  //line:vm:mm:growheap2
 
     place(bp, asize);                                 //line:vm:mm:growheap3
     return bp;
@@ -251,7 +288,7 @@ void mm_free(void *bp)
     size_t size = GET_SIZE(HDRP(bp));
 /* $end mmfree */
     if (heap_listp == 0){
-	    mm_init();
+        mm_init();
     }
 /* $begin mmfree */
 
@@ -272,11 +309,11 @@ static void *coalesce(void *bp)
     size_t size = GET_SIZE(HDRP(bp));
 
     if (prev_alloc && next_alloc) {            /* Case 1 */
-	    return bp;
+        return bp;
     } else if (prev_alloc && !next_alloc) {      /* Case 2 */
-    	size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
-	    PUT(HDRP(bp), PACK(size, 0));
-	    PUT(FTRP(bp), PACK(size,0));
+        size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        PUT(HDRP(bp), PACK(size, 0));
+        PUT(FTRP(bp), PACK(size,0));
     } else if (!prev_alloc && next_alloc) {      /* Case 3 */
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));
         PUT(FTRP(bp), PACK(size, 0));
@@ -294,7 +331,7 @@ static void *coalesce(void *bp)
     /* Make sure the rover isn't pointing into the free block */
     /* that we just coalesced */
     if ((rover > (char *)bp) && (rover < NEXT_BLKP(bp))) 
-	rover = bp;
+    rover = bp;
 #endif
 /* $begin mmfree */
     return bp;
@@ -453,8 +490,8 @@ static void printblock(void *bp)
     }
 
     /*  printf("%p: header: [%p:%c] footer: [%p:%c]\n", bp, 
-	hsize, (halloc ? 'a' : 'f'), 
-	fsize, (falloc ? 'a' : 'f')); */
+    hsize, (halloc ? 'a' : 'f'), 
+    fsize, (falloc ? 'a' : 'f')); */
 }
 
 static void checkblock(void *bp) 
@@ -476,7 +513,7 @@ void checkheap(int verbose)
         printf("Heap (%p):\n", heap_listp);
 
     if ((GET_SIZE(HDRP(heap_listp)) != DSIZE) || !GET_ALLOC(HDRP(heap_listp)))
-	    printf("Bad prologue header\n");
+        printf("Bad prologue header\n");
 
     checkblock(heap_listp);
 
