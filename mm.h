@@ -26,7 +26,7 @@ typedef struct {
 
 extern team_t team;
 
-/* privat global for setting placement algorightm */
+/* private global for setting placement algorightm */
 static int isFirstFit;
 
 /* defined Constants */

@@ -11,10 +11,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <errno.h>
-
-//#include "csapp.h"
 #include "memlib.h"
-//#include "config.h"
 
 /* $begin memlib */
 /* Private global variables */

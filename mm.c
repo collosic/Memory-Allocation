@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     int program_is_running = 1;
     char cmdline[MAXLINE];
 
-    /* first thing we need to do is to initialize the memory heap */
+    /* first thing we need to do is to initialize the memory and heap */
     mm_init();
 
     while (program_is_running) {
@@ -104,7 +104,7 @@ int evaluate(char *cmdline) {
     // now determine what command we will use
     int type = getCommandType(argv[0]);
 
-    // how call the function that is needed
+    // now call the function that is needed
     switch (type) {
         /* Here is an example on how you can use this switch statement
          * printheap(argc, argv);
@@ -162,6 +162,7 @@ int allocate (char *argv[]) {
     unsigned int amount;
     if(sscanf(argv[1], "%u", &amount) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
+        return -1;
     }
     printf("Hello we are in allocate!\n");
     char * p = mm_malloc(amount);
@@ -169,7 +170,6 @@ int allocate (char *argv[]) {
         printf("%p\n", p);
         allocate_counter = allocate_counter + 1;
         return insert_node(blocklist, allocate_counter, p);
-
     } else {
         printf("We have null pointer on our hands, run for cover\n");
         return 0;
@@ -192,15 +192,19 @@ void free_block(char *argv[]) {
 
 
 void write_heap(char *argv[]) {
-    int block_num, character, repeats;
+    int block_num, repeats;
+    char character;
     if(sscanf(argv[1], "%i", &block_num) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
+        return;
     }
     if(sscanf(argv[2], "%c", &character) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
+        return;
     }
     if(sscanf(argv[3], "%i", &repeats) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
+        return;
     }
 
     /* Let's get the block pointer from our list */
@@ -242,6 +246,9 @@ int parseline(char *buf, char **argv)
 /* $begin mminit */
 int mm_init(void)
 {
+    /* this function will initialize our entire memory space that the heap
+     * will live in.  Think of this as our VM or even our DRAM
+     */
     mem_init();
 
     /* initialize the placement algo */
@@ -539,7 +546,7 @@ void* bestFit(size_t asize) {
     }
 
     /* if the minFreeSpace var stayed at MAX_HEAP then we clearly didn't find a free space */
-    if (minFreeSpace != MAX_HEAP)
+    if (minFreeSpace < MAX_HEAP)
         return bestFitBP;
 
     return NULL; /* No fit */
