@@ -10,6 +10,7 @@
 
 #include "mm.h"
 #include "memlib.h"
+#include "map.h"
 
 /*
  * If NEXT_FIT defined use next fit search, else use first fit search 
@@ -22,7 +23,7 @@
 #define DSIZE       8       /* Doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* Extend heap by this amount (bytes) */  //line:vm:mm:endconst 
 
-#define MAX(x, y) ((x) > (y)? (x) : (y))  
+#define MAX(x, y) ((x) > (y)? (x) : (y))
 
 /* Pack a size and allocated bit into a word */
 #define PACK(size, alloc)  ((size) | (alloc)) //line:vm:mm:pack
@@ -45,7 +46,9 @@
 /* $end mallocmacros */
 
 /* Global variables */
-static char *heap_listp = 0;  /* Pointer to first block */  
+int allocate_counter = 0;
+node_t *blocklist;
+static char *heap_listp = 0;  /* Pointer to first block */
 #ifdef NEXT_FIT
 static char *rover;           /* Next fit rover */
 #endif
@@ -55,7 +58,7 @@ static void *extend_heap(size_t words);
 static void place(void *bp, size_t asize);
 static void *find_fit(size_t asize);
 static void *coalesce(void *bp);
-static void printblock(void *bp); 
+static void printblock(void *bp);
 static void checkheap(int verbose);
 static void checkblock(void *bp);
 int allocate (size_t size);
@@ -64,9 +67,9 @@ void free_block(int block_num);
 #define MAXLINE 128
 #define MAXARGS 10
 
-
 int main(int argc, char *argv[])
 {
+    blocklist = malloc(sizeof(node_t));
     int program_is_running = 1;
     char cmdline[MAXLINE];
 
@@ -83,9 +86,11 @@ int main(int argc, char *argv[])
         }
         /* Evaluate */
         program_is_running = evaluate(cmdline);
+        print_list(blocklist);
     }
     return 0;
 }
+
 
 int evaluate(char *cmdline) {
     char *argv[MAXARGS]; /* Argument list execve() */
@@ -102,38 +107,44 @@ int evaluate(char *cmdline) {
     int argc = parseline(buf, argv);
     unsigned int amount;
     int block_num;
+    char character;
+    int repeat;
     // now determine what command we will use
     int type = getCommandType(argv[0]);
-    
+
     // how call the function that is needed
     switch (type) {
         /* Here is an example on how you can use this switch statement
          * printheap(argc, argv);
          */
         case ALLOCATE:      // call your function here
-                            if(sscanf(argv[1], "%u", &amount) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-                            printf("%i\n", allocate(amount));
-                            break;
+            if(sscanf(argv[1], "%u", &amount) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+            printf("%i\n", allocate(amount));
+            break;
         case FREE:          // call your function here
-                            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-                            free_block(block_num);
-                            break;
+            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+            free_block(block_num);
+            break;
         case BLOCKLIST:     // call your function here
-                            break;
+            break;
         case WRITEHEAP:     // call your function here
-                            break;
+            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+            if(sscanf(argv[2], "%c", &character) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+            if(sscanf(argv[3], "%i", &repeat) != 1) {printf("what did you put in that cmd line? not an int!\n");}
+            write_heap(find_node(blocklist, block_num), character, repeat);
+
         case PRINTHEAP:     // call your function here
-                            break;
+            break;
         case BESTFIT:       setBestFit();
-                            puts("using bestfit from now on");
-                            break;
+            puts("using bestfit from now on");
+            break;
         case FIRSTFIT:      setFirstFit();
-                            puts("using firstfit from now on");
-                            break;
+            puts("using firstfit from now on");
+            break;
         case QUIT:          // need to free all heap mem and system mem
-                            return 0; 
+            return 0;
         default:            // This means invalid command
-                            puts("invalid command entered");
+            puts("invalid command entered");
     }
     return 1;
 }
@@ -144,7 +155,7 @@ int getCommandType(char *cmd) {
     } else if (!strcmp(cmd, "allocate")) {
         return ALLOCATE;
     } else if (!strcmp(cmd, "free")) {
-       return FREE;
+        return FREE;
     } else if (!strcmp(cmd, "blocklist")) {
         return BLOCKLIST;
     } else if (!strcmp(cmd, "writeheap")) {
@@ -168,8 +179,9 @@ int allocate (size_t size) {
     char * p = mm_malloc(size);
     if(p != NULL){
         printf("%p\n", p);
-        //right now i am just returning 1 but it should return COUNTER value
-        return 1; // return insert_node(COUNTER, p); -> that fx must return COUNTER val (and that fx if insert is successful increments COUNTER
+        allocate_counter = allocate_counter + 1;
+        return insert_node(blocklist, allocate_counter, p);
+
     } else {
         printf("We have null pointer on our hands, run for cover\n");
         return 0;
@@ -186,16 +198,24 @@ void free_block(int block_num){
 }
 
 
+void write_heap(char * bp, char character, int repeats){
+    int i = 0;
+    for (;i < repeats; i++){
+        *(bp+i) = character;
+    }
+    *(bp+i) = '\0';
+}
+
 
 int parseline(char *buf, char **argv)
 {
     char *delim;         /* Points to first space delimiter */
     int argc;            /* Number of args */
-    
+
     buf[strlen(buf)-1] = ' ';  /* Replace trailing '\n' with space */
     while (*buf && (*buf == ' ')) /* Ignore leading spaces */
         buf++;
-    
+
     /* Build the argv list */
     argc = 0;
     while ((delim = strchr(buf, ' '))) {
@@ -214,7 +234,7 @@ int parseline(char *buf, char **argv)
  * mm_init - Initialize the memory manager 
  */
 /* $begin mminit */
-int mm_init(void) 
+int mm_init(void)
 {
     mem_init();
 
@@ -226,8 +246,8 @@ int mm_init(void)
         return -1;
 
     PUT(heap_listp, 0);                          /* Alignment padding */
-    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1)); /* Prologue header */ 
-    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1)); /* Prologue footer */ 
+    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1)); /* Prologue header */
+    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1)); /* Prologue footer */
     PUT(heap_listp + (3*WSIZE), PACK(0, 1));     /* Epilogue header */
     heap_listp += (2*WSIZE);                     //line:vm:mm:endinit  
     printf("in init (start): %p\n", heap_listp);
@@ -239,7 +259,7 @@ int mm_init(void)
 /* $begin mminit */
 
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
-    if (extend_heap(CHUNKSIZE/WSIZE) == NULL) 
+    if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
         return -1;
 
     return 0;
@@ -250,11 +270,11 @@ int mm_init(void)
  * mm_malloc - Allocate a block with at least size bytes of payload 
  */
 /* $begin mmmalloc */
-void *mm_malloc(size_t size) 
+void *mm_malloc(size_t size)
 {
     size_t asize;      /* Adjusted block size */
     size_t extendsize; /* Amount to extend heap if no fit */
-    char *bp;      
+    char *bp;
 
 /* $end mmmalloc */
     if (heap_listp == 0){
@@ -279,12 +299,12 @@ void *mm_malloc(size_t size)
 
     /* No fit found. Get more memory and place the block */
     extendsize = MAX(asize,CHUNKSIZE);                 //line:vm:mm:growheap1
-    if ((bp = extend_heap(extendsize/WSIZE)) == NULL)  
+    if ((bp = extend_heap(extendsize/WSIZE)) == NULL)
         return NULL;                                  //line:vm:mm:growheap2
 
     place(bp, asize);                                 //line:vm:mm:growheap3
     return bp;
-} 
+}
 /* $end mmmalloc */
 
 /* 
@@ -294,7 +314,7 @@ void *mm_malloc(size_t size)
 void mm_free(void *bp)
 {
 /* $end mmfree */
-    if(bp == 0) 
+    if(bp == 0)
         return;
 
 /* $begin mmfree */
@@ -315,7 +335,7 @@ void mm_free(void *bp)
  * coalesce - Boundary tag coalescing. Return ptr to coalesced block
  */
 /* $begin mmfree */
-static void *coalesce(void *bp) 
+static void *coalesce(void *bp)
 {
     size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
@@ -333,8 +353,8 @@ static void *coalesce(void *bp)
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     } else {                                     /* Case 4 */
-        size += GET_SIZE(HDRP(PREV_BLKP(bp))) + 
-            GET_SIZE(FTRP(NEXT_BLKP(bp)));
+        size += GET_SIZE(HDRP(PREV_BLKP(bp))) +
+                GET_SIZE(FTRP(NEXT_BLKP(bp)));
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
@@ -380,7 +400,7 @@ void *mm_realloc(void *ptr, size_t size)
     /* Copy the old data. */
     oldsize = GET_SIZE(HDRP(ptr));
     if(size < oldsize) oldsize = size;
-        memcpy(newptr, ptr, oldsize);
+    memcpy(newptr, ptr, oldsize);
 
     /* Free the old block. */
     mm_free(ptr);
@@ -391,8 +411,8 @@ void *mm_realloc(void *ptr, size_t size)
 /* 
  * checkheap - We don't check anything right now. 
  */
-void mm_checkheap(int verbose)  
-{ 
+void mm_checkheap(int verbose)
+{
 }
 
 /* 
@@ -403,14 +423,14 @@ void mm_checkheap(int verbose)
  * extend_heap - Extend heap with free block and return its block pointer
  */
 /* $begin mmextendheap */
-static void *extend_heap(size_t words) 
+static void *extend_heap(size_t words)
 {
     char *bp;
     size_t size;
 
     /* Allocate an even number of words to maintain alignment */
     size = (words % 2) ? (words+1) * WSIZE : words * WSIZE; //line:vm:mm:beginextend
-    if ((long)(bp = mem_sbrk(size)) == -1)  
+    if ((long)(bp = mem_sbrk(size)) == -1)
         return NULL;                                        //line:vm:mm:endextend
 
     /* Initialize free block header/footer and the epilogue header */
@@ -430,17 +450,17 @@ static void *extend_heap(size_t words)
 /* $begin mmplace */
 /* $begin mmplace-proto */
 static void place(void *bp, size_t asize)
-     /* $end mmplace-proto */
+/* $end mmplace-proto */
 {
-    size_t csize = GET_SIZE(HDRP(bp));   
+    size_t csize = GET_SIZE(HDRP(bp));
 
-    if ((csize - asize) >= (2*DSIZE)) { 
+    if ((csize - asize) >= (2*DSIZE)) {
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize-asize, 0));
         PUT(FTRP(bp), PACK(csize-asize, 0));
-    } else { 
+    } else {
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
     }
@@ -472,11 +492,11 @@ static void *find_fit(size_t asize)
             return rover;
 
     return NULL;  /* no fit found */
-#else 
+#else
 /* $begin mmfirstfit */
     /* we must determine which placement algorithm we will use */
     void *(*placementFunc)(size_t);
-    
+
     placementFunc = isFirstFit ? &firstFit : &bestFit;
     return (*placementFunc)(asize);
 #endif
@@ -501,7 +521,7 @@ void* bestFit(size_t asize) {
     void *bp, *bestFitBP;
 
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-        currentFreeSpace = GET_SIZE(HDRP(bp)); 
+        currentFreeSpace = GET_SIZE(HDRP(bp));
         if (!GET_ALLOC(HDRP(bp)) && (asize <= currentFreeSpace) && (currentFreeSpace < minFreeSpace)) {
             minFreeSpace = currentFreeSpace;
             bestFitBP = bp;
@@ -511,24 +531,24 @@ void* bestFit(size_t asize) {
             if (asize == currentFreeSpace) break;
         }
     }
-    
+
     /* if the minFreeSpace var stayed at MAX_HEAP then we clearly didn't find a free space */
-    if (minFreeSpace != MAX_HEAP) 
-        return bestFitBP;    
+    if (minFreeSpace != MAX_HEAP)
+        return bestFitBP;
 
     return NULL; /* No fit */
 }
 
 
-static void printblock(void *bp) 
+static void printblock(void *bp)
 {
     size_t hsize, halloc, fsize, falloc;
 
     checkheap(0);
     hsize = GET_SIZE(HDRP(bp));
-    halloc = GET_ALLOC(HDRP(bp));  
+    halloc = GET_ALLOC(HDRP(bp));
     fsize = GET_SIZE(FTRP(bp));
-    falloc = GET_ALLOC(FTRP(bp));  
+    falloc = GET_ALLOC(FTRP(bp));
 
     if (hsize == 0) {
         printf("%p: EOL\n", bp);
@@ -540,7 +560,7 @@ static void printblock(void *bp)
     fsize, (falloc ? 'a' : 'f')); */
 }
 
-static void checkblock(void *bp) 
+static void checkblock(void *bp)
 {
     if ((size_t)bp % 8)
         printf("Error: %p is not doubleword aligned\n", bp);
@@ -551,7 +571,7 @@ static void checkblock(void *bp)
 /* 
  * checkheap - Minimal check of the heap for consistency 
  */
-void checkheap(int verbose) 
+void checkheap(int verbose)
 {
     char *bp = heap_listp;
 
@@ -564,7 +584,7 @@ void checkheap(int verbose)
     checkblock(heap_listp);
 
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-        if (verbose) 
+        if (verbose)
             printblock(bp);
 
         checkblock(bp);
