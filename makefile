@@ -4,8 +4,8 @@
 
 C = gcc
 CFLAGS = -I.
-DEPS =  mm.h memlib.h
-OBJ = mm.o memlib.o
+DEPS =  mm.h memlib.h map.h
+OBJ = mm.o memlib.o map.o
 
 %.o: %.c $(DEPS)
 	$(CC) -g -c -Wall -o $@ $< $(CFLAGS)
