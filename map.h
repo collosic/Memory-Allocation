@@ -1,0 +1,17 @@
+#ifndef MAP
+#define MAP
+
+
+typedef struct node {
+    int index;
+    char *bp;
+    struct node * next;
+} node_t;
+
+int insert_node(node_t * head, int index, char *bp);
+int remove_by_index(node_t ** head, int n);
+char * find_node(node_t * head, int index);
+void print_list(node_t * head);
+int pop(node_t ** head);
+
+#endif //MAP
