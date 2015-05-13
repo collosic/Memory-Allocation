@@ -32,6 +32,7 @@ static int isFirstFit;
 /* Our internal helper functions */
 int evaluate(char *cmdline);
 int getCommandType(char *cmd);
+void write_heap(char * bp, char character, int repeats);
 int parseline(char *buf, char **argv);
 void* firstFit(size_t asize);
 void* bestFit(size_t asize);
