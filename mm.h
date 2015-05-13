@@ -29,10 +29,16 @@ extern team_t team;
 /* privat global for setting placement algorightm */
 static int isFirstFit;
 
+/* defined Constants */
+#define MAXLINE 128
+#define MAXARGS 10
+
 /* Our internal helper functions */
+int allocate (char *argv[]);
+void free_block(char *argv[]);
 int evaluate(char *cmdline);
 int getCommandType(char *cmd);
-void write_heap(char * bp, char character, int repeats);
+void write_heap(char *argv[]);
 int parseline(char *buf, char **argv);
 void* firstFit(size_t asize);
 void* bestFit(size_t asize);

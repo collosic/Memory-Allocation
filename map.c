@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "map.h"
 
-typedef struct node {
-    int index;
-    char *bp;
-    struct node * next;
-} node_t;
 
 int insert_node(node_t * head, int index, char *bp) {
     node_t * current = head;
@@ -44,7 +40,7 @@ int remove_by_index(node_t ** head, int n) {
         return pop(head);
     }
 
-    for (int i = 0; i < n-1; i++) {
+    for (; i < n-1; i++) {
         if (current->next == NULL) {
             return -1;
         }

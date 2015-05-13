@@ -33,7 +33,7 @@
 #define PUT(p, val)  (*(unsigned int *)(p) = (val))    //line:vm:mm:put
 
 /* Read the size and allocated fields from address p */
-#define GET_SIZE(p)  (GET(p) & ~0x7)                   //line:vm:mm:getsize
+#define GET_SIZE(p)  (GET(p) & ~0x3)                   //line:vm:mm:getsize
 #define GET_ALLOC(p) (GET(p) & 0x1)                    //line:vm:mm:getalloc
 
 /* Given block ptr bp, compute address of its header and footer */
@@ -61,11 +61,6 @@ static void *coalesce(void *bp);
 static void printblock(void *bp);
 static void checkheap(int verbose);
 static void checkblock(void *bp);
-int allocate (size_t size);
-void free_block(int block_num);
-/* defined Constants */
-#define MAXLINE 128
-#define MAXARGS 10
 
 int main(int argc, char *argv[])
 {
@@ -105,10 +100,7 @@ int evaluate(char *cmdline) {
      */
     strcpy(buf, cmdline);
     int argc = parseline(buf, argv);
-    unsigned int amount;
-    int block_num;
-    char character;
-    int repeat;
+    
     // now determine what command we will use
     int type = getCommandType(argv[0]);
 
@@ -117,34 +109,26 @@ int evaluate(char *cmdline) {
         /* Here is an example on how you can use this switch statement
          * printheap(argc, argv);
          */
-        case ALLOCATE:      // call your function here
-            if(sscanf(argv[1], "%u", &amount) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-            printf("%i\n", allocate(amount));
-            break;
-        case FREE:          // call your function here
-            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-            free_block(block_num);
-            break;
+        case ALLOCATE:      printf("%i\n", allocate(argv));
+                            break;
+        case FREE:          free_block(argv);
+                            break;
         case BLOCKLIST:     // call your function here
-            break;
-        case WRITEHEAP:     // call your function here
-            if(sscanf(argv[1], "%i", &block_num) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-            if(sscanf(argv[2], "%c", &character) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-            if(sscanf(argv[3], "%i", &repeat) != 1) {printf("what did you put in that cmd line? not an int!\n");}
-            write_heap(find_node(blocklist, block_num), character, repeat);
-
+                            break;
+        case WRITEHEAP:     write_heap(argv);
+                            break;
         case PRINTHEAP:     // call your function here
-            break;
+                            break;
         case BESTFIT:       setBestFit();
-            puts("using bestfit from now on");
-            break;
+                            puts("using bestfit from now on");
+                            break;
         case FIRSTFIT:      setFirstFit();
-            puts("using firstfit from now on");
-            break;
+                            puts("using firstfit from now on");
+                            break;
         case QUIT:          // need to free all heap mem and system mem
-            return 0;
+                            return 0;
         default:            // This means invalid command
-            puts("invalid command entered");
+                            puts("invalid command entered");
     }
     return 1;
 }
@@ -174,9 +158,13 @@ int getCommandType(char *cmd) {
 }
 
 //A: allocate fx "wrapper"
-int allocate (size_t size) {
+int allocate (char *argv[]) {
+    unsigned int amount;
+    if(sscanf(argv[1], "%u", &amount) != 1) {
+        printf("what did you put in that cmd line? not an int!\n");
+    }
     printf("Hello we are in allocate!\n");
-    char * p = mm_malloc(size);
+    char * p = mm_malloc(amount);
     if(p != NULL){
         printf("%p\n", p);
         allocate_counter = allocate_counter + 1;
@@ -188,8 +176,13 @@ int allocate (size_t size) {
     }
 
 }
+
 //A: free "wrapper"
-void free_block(int block_num){
+void free_block(char *argv[]) {
+    int block_num;
+    if(sscanf(argv[1], "%i", &block_num) != 1) {
+        printf("what did you put in that cmd line? not an int!\n");
+    }
     printf("Hello from free fx\n");
     //here we get that pointer from our LL via void *get_addy(int block_num) fx or something
     //mm_free(get_addy(int block_num));
@@ -198,7 +191,20 @@ void free_block(int block_num){
 }
 
 
-void write_heap(char * bp, char character, int repeats){
+void write_heap(char *argv[]) {
+    int block_num, character, repeats;
+    if(sscanf(argv[1], "%i", &block_num) != 1) {
+        printf("what did you put in that cmd line? not an int!\n");
+    }
+    if(sscanf(argv[2], "%c", &character) != 1) {
+        printf("what did you put in that cmd line? not an int!\n");
+    }
+    if(sscanf(argv[3], "%i", &repeats) != 1) {
+        printf("what did you put in that cmd line? not an int!\n");
+    }
+
+    /* Let's get the block pointer from our list */
+    char *bp = find_node(blocklist, block_num);
     int i = 0;
     for (;i < repeats; i++){
         *(bp+i) = character;
@@ -286,10 +292,10 @@ void *mm_malloc(size_t size)
         return NULL;
 
     /* Adjust block size to include overhead and alignment reqs. */
-    if (size <= DSIZE)                                          //line:vm:mm:sizeadjust1
-        asize = 2*DSIZE;                                        //line:vm:mm:sizeadjust2
+    if (size <= WSIZE)                                          //line:vm:mm:sizeadjust1
+        asize = WSIZE + DSIZE;
     else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE); //line:vm:mm:sizeadjust3
+        asize = WSIZE * ((size + (DSIZE) + (WSIZE-1)) / WSIZE); //line:vm:mm:sizeadjust3
 
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL) {  //line:vm:mm:findfitcall
@@ -454,7 +460,7 @@ static void place(void *bp, size_t asize)
 {
     size_t csize = GET_SIZE(HDRP(bp));
 
-    if ((csize - asize) >= (2*DSIZE)) {
+    if ((csize - asize) >= (WSIZE + DSIZE)) {
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
