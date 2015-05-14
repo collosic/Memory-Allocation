@@ -61,6 +61,8 @@ static void *coalesce(void *bp);
 static void printblock(void *bp);
 static void checkheap(int verbose);
 static void checkblock(void *bp);
+void clean_up(node_t *blocklist, void *heap);
+
 
 int main(int argc, char *argv[])
 {
@@ -83,6 +85,8 @@ int main(int argc, char *argv[])
         program_is_running = evaluate(cmdline);
         print_list(blocklist);
     }
+	free_list(blocklist);
+	blocklist=NULL;
     return 0;
 }
 
@@ -113,7 +117,7 @@ int evaluate(char *cmdline) {
                             break;
         case FREE:          free_block(argv);
                             break;
-        case BLOCKLIST:     // call your function here
+        case BLOCKLIST:     print_blocklist();
                             break;
         case WRITEHEAP:     write_heap(argv);
                             break;
@@ -126,6 +130,7 @@ int evaluate(char *cmdline) {
                             puts("using firstfit from now on");
                             break;
         case QUIT:          // need to free all heap mem and system mem
+							
                             return 0;
         default:            // This means invalid command
                             puts("invalid command entered");
@@ -157,6 +162,8 @@ int getCommandType(char *cmd) {
     }
 }
 
+
+
 //A: allocate fx "wrapper"
 int allocate (char *argv[]) {
     unsigned int amount;
@@ -167,7 +174,7 @@ int allocate (char *argv[]) {
     printf("Hello we are in allocate!\n");
     char * p = mm_malloc(amount);
     if(p != NULL){
-        printf("%p\n", p);
+        printf("this is allocated ptr bp: %p\n", p);		
         allocate_counter = allocate_counter + 1;
         return insert_node(blocklist, allocate_counter, p);
     } else {
@@ -185,9 +192,21 @@ void free_block(char *argv[]) {
     }
     printf("Hello from free fx\n");
     //here we get that pointer from our LL via void *get_addy(int block_num) fx or something
-    //mm_free(get_addy(int block_num));
-    //here we call the remove_node(int block_num) -> it must remove the node with that block number
-    //we don't do anything with the COUNTER here (only when we insert node)
+    mm_free(find_node(blocklist, block_num));
+	remove_by_index(blocklist, block_num);
+	
+    
+}
+
+//A: blocklist fx
+void print_blocklist() {
+	char *bp = heap_listp;
+	printf("Size\tAllocated\tStart\tEnd\n");
+	//skipping prologue here
+	for (bp = heap_listp+2*WSIZE; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+		 printblock(bp);
+	}
+
 }
 
 
@@ -567,16 +586,22 @@ static void printblock(void *bp)
         printf("%p: EOL\n", bp);
         return;
     }
+	printf("%zu\t%s\t%p\t%p\n", hsize-2*WSIZE, (halloc ? "yes" : "no"), bp+WSIZE, bp+hsize-WSIZE);
 
-    /*  printf("%p: header: [%p:%c] footer: [%p:%c]\n", bp, 
-    hsize, (halloc ? 'a' : 'f'), 
-    fsize, (falloc ? 'a' : 'f')); */
+    /* printf("%p: header: [%zu:%c] footer: [%zu:%c] AND contents: %zu and start contents: %p and end contents: %p\n", bp,
+    hsize, (halloc ? 'y' : 'n'), //payload w/padding plus foot+head
+    fsize, (falloc ? 'y' : 'n'), 
+	hsize-2*WSIZE,
+	bp+WSIZE,
+	bp+hsize-WSIZE); */
 }
+
+
 
 static void checkblock(void *bp)
 {
-    if ((size_t)bp % 8)
-        printf("Error: %p is not doubleword aligned\n", bp);
+    if ((size_t)bp % 4)
+        printf("Error: %p is not doubleword(in our case 4) aligned\n", bp);
     if (GET(HDRP(bp)) != GET(FTRP(bp)))
         printf("Error: header does not match footer\n");
 }

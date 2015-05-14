@@ -42,6 +42,9 @@ void write_heap(char *argv[]);
 int parseline(char *buf, char **argv);
 void* firstFit(size_t asize);
 void* bestFit(size_t asize);
+void print_blocklist();
+
+
 
 /* inline function declartions */
 void setBestFit() { isFirstFit = FALSE; };
