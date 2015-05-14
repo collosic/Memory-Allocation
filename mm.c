@@ -17,6 +17,12 @@
  */
 //#define NEXT_FIT
 
+
+/* Here we define the size of our alignment from the default of 8 bytes to an adjusted
+ * 4 byte WORD.  If WORD_ALIGNMENT is defined then the alignment will be changed from DSIZE (8 bytes)
+ * to a WSIZE (4 bytes) alignment. */
+#define WORD_ALIGNMENT
+
 /* $begin mallocmacros */
 /* Basic constants and macros */
 #define WSIZE       4       /* Word and header/footer size (bytes) */ //line:vm:mm:beginconst
@@ -33,7 +39,11 @@
 #define PUT(p, val)  (*(unsigned int *)(p) = (val))    //line:vm:mm:put
 
 /* Read the size and allocated fields from address p */
+#ifdef WORD_ALIGNMENT
 #define GET_SIZE(p)  (GET(p) & ~0x3)                   //line:vm:mm:getsize
+#else 
+#define GET_SIZE(p)  (GET(p) & ~0x7)                   //line:vm:mm:getsize
+#endif
 #define GET_ALLOC(p) (GET(p) & 0x1)                    //line:vm:mm:getalloc
 
 /* Given block ptr bp, compute address of its header and footer */
@@ -103,7 +113,7 @@ int evaluate(char *cmdline) {
      * with a NULL.  I leave each function to verify it's args are correct
      */
     strcpy(buf, cmdline);
-    int argc = parseline(buf, argv);
+    parseline(buf, argv);
     
     // now determine what command we will use
     int type = getCommandType(argv[0]);
@@ -124,13 +134,10 @@ int evaluate(char *cmdline) {
         case PRINTHEAP:     // call your function here
                             break;
         case BESTFIT:       setBestFit();
-                            puts("using bestfit from now on");
                             break;
         case FIRSTFIT:      setFirstFit();
-                            puts("using firstfit from now on");
                             break;
-        case QUIT:          // need to free all heap mem and system mem
-							
+        case QUIT:          mem_deinit(); 
                             return 0;
         default:            // This means invalid command
                             puts("invalid command entered");
@@ -317,11 +324,18 @@ void *mm_malloc(size_t size)
     if (size == 0)
         return NULL;
 
+#ifdef WORD_ALIGNMENT
     /* Adjust block size to include overhead and alignment reqs. */
     if (size <= WSIZE)                                          //line:vm:mm:sizeadjust1
         asize = WSIZE + DSIZE;
     else
         asize = WSIZE * ((size + (DSIZE) + (WSIZE-1)) / WSIZE); //line:vm:mm:sizeadjust3
+#else 
+    if (size <= DSIZE)                                          //line:vm:mm:sizeadjust1
+        asize = 2 * DSIZE;
+    else
+        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE); //line:vm:mm:sizeadjust3
+#endif
 
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL) {  //line:vm:mm:findfitcall
@@ -485,8 +499,15 @@ static void place(void *bp, size_t asize)
 /* $end mmplace-proto */
 {
     size_t csize = GET_SIZE(HDRP(bp));
+    int minimum_block_size;
 
-    if ((csize - asize) >= (WSIZE + DSIZE)) {
+#ifdef WORD_ALIGNMENT
+    minimum_block_size = WSIZE + DSIZE;
+#else 
+    minimum_block_size = 2 * DSIZE;
+#endif
+
+    if ((csize - asize) >= minimum_block_size) {
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
@@ -600,7 +621,15 @@ static void printblock(void *bp)
 
 static void checkblock(void *bp)
 {
-    if ((size_t)bp % 4)
+    size_t block_alignment;
+
+#ifdef WORD_ALIGNMENT
+    block_alignment = WSIZE;
+#else
+    block_alignment = DSIZE;
+#endif
+
+    if ((size_t)bp % block_alignment)
         printf("Error: %p is not doubleword(in our case 4) aligned\n", bp);
     if (GET(HDRP(bp)) != GET(FTRP(bp)))
         printf("Error: header does not match footer\n");

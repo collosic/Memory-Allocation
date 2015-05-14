@@ -54,6 +54,7 @@ void *mem_sbrk(int incr)
  */
 void mem_deinit(void)
 {
+    Free(mem_heap);
 }
 
 /*
