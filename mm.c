@@ -235,6 +235,9 @@ void write_heap(char *argv[]) {
 
     /* Let's get the block pointer from our list */
     char *bp = find_node(blocklist, block_num);
+    if (repeats > GET_SIZE(HDRP(bp)) -2*WSIZE) {
+        repeats = GET_SIZE(HDRP(bp)) - 2 * WSIZE;
+    }
     int i = 0;
     for (;i < repeats; i++){
         *(bp+i) = character;
