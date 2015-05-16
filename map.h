@@ -5,6 +5,7 @@
 typedef struct node {
     int index;
     char *bp;
+    int payload;
     struct node * next;
 } node_t;
 
