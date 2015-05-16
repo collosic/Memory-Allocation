@@ -11,7 +11,7 @@ typedef struct node {
 
 int insert_node(node_t * head, int index, char *bp);
 int remove_by_index(node_t * head, int n);
-char * find_node(node_t * head, int index);
+node_t * find_node(node_t * head, int index);
 void print_list(node_t * head);
 int pop(node_t * head);
 void free_list(node_t * head);
