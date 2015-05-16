@@ -9,11 +9,11 @@ int insert_node(node_t * head, int index, char *bp) {
     while (current->next != NULL) {
         current = current->next;
     }
-
     /* now we can add a new variable */
     current->next = malloc(sizeof(node_t));
     current->next->index = index;
     current->next->bp = bp;
+    current->next->written_heap_size = 0;
     current->next->next = NULL;
     return index;
 }
