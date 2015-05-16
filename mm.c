@@ -131,7 +131,7 @@ int evaluate(char *cmdline) {
                             break;
         case WRITEHEAP:     write_heap(argv);
                             break;
-        case PRINTHEAP:     // call your function here
+        case PRINTHEAP:     print_heap(argv);
                             break;
         case BESTFIT:       setBestFit();
                             break;
@@ -243,6 +243,39 @@ void write_heap(char *argv[]) {
         *(node->bp +i) = character;
         node->written_heap_size++;
     }
+}
+
+void print_heap(char *argv[]) {
+	int block_num, num_to_print;
+	
+	if(sscanf(argv[1], "%i", &block_num) != 1) {
+		printf("what did you put in that cmd line? not an int!\n");
+		return;
+	}
+	
+	if(sscanf(argv[2], "%i", &num_to_print) !=1) {
+		printf("what did you put in that cmd line? not an int\n")
+		return;
+	}
+	
+	node_t * node = find_node(blocklist, block_num);
+	
+	int i = 0;
+	
+	for(;num_to_print > 0; num_to_print--) {
+		
+		//Switches to next block if next char is empty
+		if(*(node->bp + i) == '\0') {
+			block_num++
+			node = find_node(blocklist, block_num);
+			i = 0;
+		}
+		
+		printf("%c", *(node->bp + i));
+		i++;
+	}
+	
+	printf("\n");
 }
 
 int parseline(char *buf, char **argv)
