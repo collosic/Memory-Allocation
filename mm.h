@@ -39,6 +39,7 @@ void free_block(char *argv[]);
 int evaluate(char *cmdline);
 int getCommandType(char *cmd);
 void write_heap(char *argv[]);
+void print_heap(char *argv[]);
 int parseline(char *buf, char **argv);
 void* firstFit(size_t asize);
 void* bestFit(size_t asize);
