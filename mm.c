@@ -265,9 +265,8 @@ void print_heap(char *argv[]) {
 	for(;num_to_print > 0; num_to_print--) {
 		
 		//Switches to next block if next char is empty
-		if(*(node->bp + i) == '\0') {
-			block_num++;
-			node = find_node(blocklist, block_num);
+		if((*(node->bp + i) == '\0') || (node->bp + i) == FTRP(node->bp)))) {
+			node->bp = NEXT_BLKP(node->bp);
 			i = 0;
 		}
 		
