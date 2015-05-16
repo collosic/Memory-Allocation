@@ -216,7 +216,6 @@ void print_blocklist() {
 
 }
 
-
 void write_heap(char *argv[]) {
     int block_num, repeats;
     char character;
@@ -234,17 +233,17 @@ void write_heap(char *argv[]) {
     }
 
     /* Let's get the block pointer from our list */
-    char *bp = find_node(blocklist, block_num);
-    if (repeats > GET_SIZE(HDRP(bp)) -2*WSIZE) {
-        repeats = GET_SIZE(HDRP(bp)) - 2 * WSIZE;
-    }
+    node_t * node = find_node(blocklist, block_num);
     int i = 0;
-    for (;i < repeats; i++){
-        *(bp+i) = character;
+    if (repeats > GET_SIZE(HDRP(node->bp)) -2*WSIZE) {
+        repeats = GET_SIZE(HDRP(node->bp)) - 2 * WSIZE;
     }
-    *(bp+i) = '\0';
-}
 
+    for (;i < repeats; i++){
+        *(node->bp +i) = character;
+        node->written_heap_size++;
+    }
+}
 
 int parseline(char *buf, char **argv)
 {
