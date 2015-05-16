@@ -18,12 +18,12 @@ int insert_node(node_t * head, int index, char *bp) {
     return index;
 }
 
-char * find_node(node_t * head, int index){
+node_t * find_node(node_t * head, int index){
     node_t * current = head;
 
     while (current != NULL) {
         if (current->index == index){
-            return current->bp;
+            return current;
         }
         current = current->next;
     }
