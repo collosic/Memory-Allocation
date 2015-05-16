@@ -254,7 +254,7 @@ void print_heap(char *argv[]) {
 	}
 	
 	if(sscanf(argv[2], "%i", &num_to_print) !=1) {
-		printf("what did you put in that cmd line? not an int\n")
+		printf("what did you put in that cmd line? not an int\n");
 		return;
 	}
 	
@@ -266,7 +266,7 @@ void print_heap(char *argv[]) {
 		
 		//Switches to next block if next char is empty
 		if(*(node->bp + i) == '\0') {
-			block_num++
+			block_num++;
 			node = find_node(blocklist, block_num);
 			i = 0;
 		}
