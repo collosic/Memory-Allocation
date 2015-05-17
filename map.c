@@ -59,8 +59,6 @@ void print_list(node_t * head) {
     node_t * current = head;
 
     while (current != NULL) {
-        printf("key %d\n", current->index);
-        printf("value %p\n", current->bp);
         current = current->next;
     }
 }
@@ -90,6 +88,4 @@ void free_list(node_t * head) {
 		free(to_del);
 		to_del = current;	
 	}
-
-	
 }

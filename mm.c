@@ -113,7 +113,7 @@ int evaluate(char *cmdline) {
      * with a NULL.  I leave each function to verify it's args are correct
      */
     strcpy(buf, cmdline);
-    parseline(buf, argv);
+    int argc = parseline(buf, argv);
     
     // now determine what command we will use
     int type = getCommandType(argv[0]);
@@ -125,7 +125,7 @@ int evaluate(char *cmdline) {
          */
         case ALLOCATE:      printf("%i\n", allocate(argv));
                             break;
-        case FREE:          free_block(argv);
+        case FREE:          free_block(argc, argv);
                             break;
         case BLOCKLIST:     print_blocklist();
                             break;
@@ -178,7 +178,6 @@ int allocate (char *argv[]) {
         printf("what did you put in that cmd line? not an int!\n");
         return -1;
     }
-    printf("Hello we are in allocate!\n");
     char * p = mm_malloc(amount);
     if(p != NULL){
         printf("this is allocated ptr bp: %p\n", p);		
@@ -192,15 +191,27 @@ int allocate (char *argv[]) {
 }
 
 //A: free "wrapper"
-void free_block(char *argv[]) {
+void free_block(int argc, char *argv[]) {
+    if (argc < 2) {
+        puts("invalid use of free");
+        return;
+    }
     int block_num;
     if(sscanf(argv[1], "%i", &block_num) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
+        return;
     }
-    printf("Hello from free fx\n");
-    //here we get that pointer from our LL via void *get_addy(int block_num) fx or something
-    mm_free(find_node(blocklist, block_num));
-	remove_by_index(blocklist, block_num);
+    if (block_num < 1) {
+        puts("requires a digit greater than zero");
+    }
+    // here we get that pointer from our LL via void *get_addy(int block_num) fx or something
+    node_t *free_bp = find_node(blocklist, block_num); 
+    if (free_bp != NULL) {
+        mm_free(free_bp->bp);
+	    remove_by_index(blocklist, block_num);
+    } else {
+        puts("block number not valid");
+    }
 	
     
 }
@@ -231,12 +242,15 @@ void write_heap(char *argv[]) {
         printf("what did you put in that cmd line? not an int!\n");
         return;
     }
-
     /* Let's get the block pointer from our list */
     node_t * node = find_node(blocklist, block_num);
+    if (node == NULL) {
+        puts("that block number is invalid");
+        return;
+    }
     int i = 0;
-    if (repeats > GET_SIZE(HDRP(node->bp)) -2*WSIZE) {
-        repeats = GET_SIZE(HDRP(node->bp)) - 2 * WSIZE;
+    if (repeats > GET_SIZE(HDRP(node->bp)) - (2*WSIZE)) {
+        repeats = GET_SIZE(HDRP(node->bp)) - (2 * WSIZE);
     }
 
     for (;i < repeats; i++){
@@ -265,13 +279,15 @@ void print_heap(char *argv[]) {
 	for(;num_to_print > 0; num_to_print--) {
 		
 		//Switches to next block if next char is empty
-		if((*(node->bp + i) == '\0') || (node->bp + i) == FTRP(node->bp)) {
+		if((node->bp + i) == FTRP(node->bp)) {
 			node->bp = NEXT_BLKP(node->bp);
 			i = 0;
 		}
-		
-		printf("%c", *(node->bp + i));
-		i++;
+        char p = *(node->bp + i++);
+	    if (isprint(p))
+            printf("%c", p);
+        else 
+            printf("%c", ' ');
 	}
 	
 	printf("\n");

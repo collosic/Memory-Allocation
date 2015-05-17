@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <ctype.h>
 
 #define FALSE 0
 #define TRUE 1
@@ -35,7 +36,7 @@ static int isFirstFit;
 
 /* Our internal helper functions */
 int allocate (char *argv[]);
-void free_block(char *argv[]);
+void free_block(int argc, char *argv[]);
 int evaluate(char *cmdline);
 int getCommandType(char *cmd);
 void write_heap(char *argv[]);
