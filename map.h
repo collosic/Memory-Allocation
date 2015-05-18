@@ -1,3 +1,7 @@
+#ifndef MAP
+#define MAP
+
+
 typedef struct node {
     int index;
     char *bp;
