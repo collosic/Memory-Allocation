@@ -234,7 +234,7 @@ void print_blocklist() {
 }
 
 void write_heap(int argc, char *argv[]) {
-	if (argc < 2) {
+	if (argc != 4) {
         puts("invalid use of write heap");
         return;
     }
@@ -271,7 +271,7 @@ void write_heap(int argc, char *argv[]) {
 
 void print_heap(int argc, char *argv[]) {
 	int block_num, num_to_print;
-	if (argc < 2) {
+	if (argc != 3) {
         puts("invalid use of print heap");
         return;
     }
