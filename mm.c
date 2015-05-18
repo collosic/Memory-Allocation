@@ -232,6 +232,15 @@ void print_blocklist() {
 void write_heap(char *argv[]) {
     int block_num, repeats;
     char character;
+    
+    int count = 0;
+    while(argv[++count] != NULL);
+
+    if (count != 4){
+        printf("You should enter only 3 variables for writeheap\n");
+        return;
+    }
+    
     if(sscanf(argv[1], "%i", &block_num) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
         return;
