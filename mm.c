@@ -93,7 +93,6 @@ int main(int argc, char *argv[])
         }
         /* Evaluate */
         program_is_running = evaluate(cmdline);
-        print_list(blocklist);
     }
 	free_list(blocklist);
 	blocklist=NULL;
