@@ -93,7 +93,9 @@ int main(int argc, char *argv[])
         }
         /* Evaluate */
         program_is_running = evaluate(cmdline);
+		print_list(blocklist);
     }
+	printf("we are here before quit\n");
 	free_list(blocklist);
 	blocklist=NULL;
     return 0;
@@ -179,7 +181,6 @@ int allocate (char *argv[]) {
     }
     char * p = mm_malloc(amount);
     if(p != NULL){
-        printf("this is allocated ptr bp: %p\n", p);		
         allocate_counter = allocate_counter + 1;
         return insert_node(blocklist, allocate_counter, p);
     } else {
@@ -203,14 +204,16 @@ void free_block(int argc, char *argv[]) {
     if (block_num < 1) {
         puts("requires a digit greater than zero");
     }
+	else {
     // here we get that pointer from our LL via void *get_addy(int block_num) fx or something
     node_t *free_bp = find_node(blocklist, block_num); 
     if (free_bp != NULL) {
         mm_free(free_bp->bp);
-	    remove_by_index(blocklist, block_num);
+	    int r = remove_by_index(blocklist, block_num);
     } else {
         puts("block number not valid");
     }
+	}
 	
     
 }
