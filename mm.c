@@ -286,21 +286,32 @@ void print_heap(int argc, char *argv[]) {
 	}
 	
 	node_t * node = find_node(blocklist, block_num);
-	
+    void *bp = node->bp;	
+
 	int i = 0;
+    int num_bytes_read = 0;
 	
 	for(;num_to_print > 0; num_to_print--) {
-		
+        if(node->bp + num_bytes_read >= (char *) getCurrentHeapSize()) {
+            // if we get here it means we're trying to read past the 
+            // current heap size
+            printf("\ntrying to read past heap size");
+            break;
+        }	
 		//Switches to next block if next char is empty
-		if((node->bp + i) == FTRP(node->bp)) {
-			node->bp = NEXT_BLKP(node->bp);
+		if((bp + i) == FTRP(bp)) {
+			bp = NEXT_BLKP(bp);
 			i = 0;
 		}
+
         char p = *(node->bp + i++);
 	    if (isprint(p))
             printf("%c", p);
         else 
             printf("%c", ' ');
+
+        // update the number of bytes read
+        num_bytes_read++;
 	}
 	
 	printf("\n");

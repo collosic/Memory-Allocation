@@ -48,7 +48,9 @@ void *mem_sbrk(int incr)
     return (void *)old_brk;
 }
 /* $end memlib */
-
+void *getCurrentHeapSize() {
+    return mem_brk;
+}
 /* 
  * mem_deinit - free the storage used by the memory system model
  */
@@ -56,6 +58,7 @@ void mem_deinit(void)
 {
     Free(mem_heap);
 }
+
 
 /*
  * mem_reset_brk - reset the simulated brk pointer to make an empty heap
