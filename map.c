@@ -3,7 +3,7 @@
 #include "map.h"
 
 
-int insert_node(node_t * head, int index, char *bp) {
+int insert_node(node_t * head, int index, int allocated_size, char *bp) {
     node_t * current = head;
 
     while (current->next != NULL) {
@@ -13,6 +13,7 @@ int insert_node(node_t * head, int index, char *bp) {
     current->next = malloc(sizeof(node_t));
     current->next->index = index;
     current->next->bp = bp;
+    current->next->allocated_size = allocated_size;
     current->next->written_heap_size = 0;
     current->next->next = NULL;
     return index;
