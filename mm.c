@@ -183,7 +183,7 @@ int allocate (char *argv[]) {
     if(p != NULL){
         printf("this is allocated ptr bp: %p\n", p);		
         allocate_counter = allocate_counter + 1;
-        return insert_node(blocklist, allocate_counter, p);
+        return insert_node(blocklist, allocate_counter, amount, p);
     } else {
         printf("We have null pointer on our hands, run for cover\n");
         return 0;
@@ -258,11 +258,12 @@ void write_heap(int argc, char *argv[]) {
         puts("that block number is invalid");
         return;
     }
-    int i = 0;
-    if (repeats > GET_SIZE(HDRP(node->bp)) - (2*WSIZE)) {
-        repeats = GET_SIZE(HDRP(node->bp)) - (2 * WSIZE);
+    
+    if (repeats > node->allocated_size) {
+        repeats = node->allocated_size;
     }
-
+    
+    int i = 0;
     for (;i < repeats; i++){
         *(node->bp +i) = character;
         node->written_heap_size++;
