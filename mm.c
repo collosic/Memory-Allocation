@@ -130,9 +130,9 @@ int evaluate(char *cmdline) {
                             break;
         case BLOCKLIST:     print_blocklist();
                             break;
-        case WRITEHEAP:     write_heap(argv);
+        case WRITEHEAP:     write_heap(argc, argv);
                             break;
-        case PRINTHEAP:     print_heap(argv);
+        case PRINTHEAP:     print_heap(argc, argv);
                             break;
         case BESTFIT:       setBestFit();
                             break;
@@ -181,6 +181,7 @@ int allocate (char *argv[]) {
     }
     char * p = mm_malloc(amount);
     if(p != NULL){
+        printf("this is allocated ptr bp: %p\n", p);		
         allocate_counter = allocate_counter + 1;
         return insert_node(blocklist, allocate_counter, p);
     } else {
@@ -206,10 +207,13 @@ void free_block(int argc, char *argv[]) {
     }
 	else {
     // here we get that pointer from our LL via void *get_addy(int block_num) fx or something
+	printf("%i\n", block_num);
     node_t *free_bp = find_node(blocklist, block_num); 
+	//printf("%p -> %p\n", free_bp, free_bp->bp);
     if (free_bp != NULL) {
         mm_free(free_bp->bp);
 	    int r = remove_by_index(blocklist, block_num);
+		printf("%i is removed\n", r);
     } else {
         puts("block number not valid");
     }
@@ -229,18 +233,13 @@ void print_blocklist() {
 
 }
 
-void write_heap(char *argv[]) {
-    int block_num, repeats;
-    char character;
-    
-    int count = 0;
-    while(argv[++count] != NULL);
-
-    if (count != 4){
-        printf("You should enter only 3 variables for writeheap\n");
+void write_heap(int argc, char *argv[]) {
+	if (argc < 2) {
+        puts("invalid use of write heap");
         return;
     }
-    
+    int block_num, repeats;
+    char character;
     if(sscanf(argv[1], "%i", &block_num) != 1) {
         printf("what did you put in that cmd line? not an int!\n");
         return;
@@ -270,9 +269,12 @@ void write_heap(char *argv[]) {
     }
 }
 
-void print_heap(char *argv[]) {
+void print_heap(int argc, char *argv[]) {
 	int block_num, num_to_print;
-	
+	if (argc < 2) {
+        puts("invalid use of print heap");
+        return;
+    }
 	if(sscanf(argv[1], "%i", &block_num) != 1) {
 		printf("what did you put in that cmd line? not an int!\n");
 		return;
