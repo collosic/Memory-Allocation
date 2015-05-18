@@ -304,7 +304,7 @@ void print_heap(int argc, char *argv[]) {
 			i = 0;
 		}
 
-        char p = *(node->bp + i++);
+        char p = *((char *) bp + i++);
 	    if (isprint(p))
             printf("%c", p);
         else 
